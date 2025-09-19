@@ -1,8 +1,7 @@
-name: Mirror Pantheon -> GitHub
-
+name: Pantheon -> GitHub
 on:
   workflow_dispatch:
-
+  
 env:
   PANTHEON_GIT_URL: ${{ secrets.PANTHEON_GIT_URL }}
 
