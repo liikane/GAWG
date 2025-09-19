@@ -1,5 +1,4 @@
-
-name: Mirror Pantheon -> GitHub
+name: Mirror Pantheon -> GitHub 
 
 on:
   workflow_dispatch:
