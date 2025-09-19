@@ -1,0 +1,56 @@
+name: Push GitHub -> Pantheon
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Local branch to push to Pantheon (e.g. main or your-feature-branch)'
+        required: true
+        default: 'main'
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Start ssh-agent and add PANTHEON key
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.PANTHEON_SSH_KEY }}
+
+      - name: Add Pantheon host key to known_hosts
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          URL="${{ secrets.PANTHEON_GIT_URL }}"
+          NO_PROTO="${URL#ssh://}"
+          NO_PROTO="${NO_PROTO#git@}"
+          NO_USER="${NO_PROTO#*@}"
+          HOSTPORT="${NO_USER%%/*}"
+          HOST="${HOSTPORT%%:*}"
+          PORT="${HOSTPORT#*:}"
+          if [ "$PORT" != "$HOSTPORT" ]; then
+            ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || ssh-keyscan "$HOST" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan "$HOST" >> ~/.ssh/known_hosts
+          fi
+
+      - name: Push branch to Pantheon
+        env:
+          PANTHEON_GIT_URL: ${{ secrets.PANTHEON_GIT_URL }}
+          BRANCH: ${{ github.event.inputs.branch }}
+        run: |
+          set -e
+          # Ensure branch exists locally
+          git fetch origin "$BRANCH":"$BRANCH" || true
+          if ! git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH does not exist locally."
+            exit 1
+          fi
+          # Push to Pantheon (explicit refspec)
+          echo "Pushing ${BRANCH} -> ${PANTHEON_GIT_URL} (this will update/create branch on Pantheon Git)"
+          git push "${PANTHEON_GIT_URL}" "refs/heads/${BRANCH}:refs/heads/${BRANCH}"
