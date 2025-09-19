@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-
+        description: 'Local branch to push to Pantheon (e.g. main or your-feature-branch)'
+        required: true
+        default: 'master'
 
 env:
   PANTHEON_GIT_URL: ${{ secrets.PANTHEON_GIT_URL }}
